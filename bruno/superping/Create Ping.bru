@@ -1,0 +1,22 @@
+meta {
+  name: Create Ping
+  type: http
+  seq: 2
+}
+
+post {
+  url: http://localhost:8080/pings
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "name": "cf dns",
+    "ip": "1.1.1.1"
+  }
+}

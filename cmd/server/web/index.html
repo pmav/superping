@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Superping</title>
+  <link rel="stylesheet" href="/app.css">
+  <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+</head>
+<body>
+  <main id="app" class="shell">
+    <header class="topbar">
+      <div class="brand"><span class="brand-mark" aria-hidden="true">+</span><span>superping</span></div>
+      <div class="topbar-actions"><div class="connection"><span class="pulse"></span><span>{{ connectionLabel }}</span></div><button @click="toggleTheme" class="theme-button" type="button" :aria-pressed="darkMode" :title="darkMode ? 'Use light theme' : 'Use dark theme'" :aria-label="darkMode ? 'Use light theme' : 'Use dark theme'">{{ darkMode ? '&#9788;' : '&#9790;' }}</button></div>
+    </header>
+
+    <section class="intro">
+      <div><p class="kicker">Network watchlist</p><h1>Know what is reachable.</h1><p class="lede">Keep a clear eye on the endpoints that matter. Changes are saved instantly to your local service.</p></div>
+      <div class="summary"><strong>{{ pings.length }}</strong><span>targets tracked</span></div>
+    </section>
+
+    <section class="workspace">
+      <aside class="panel add-panel">
+        <div class="panel-heading"><div><p class="eyebrow">New target</p><h2>Add a ping</h2></div><span class="step">01</span></div>
+        <form @submit.prevent="addPing">
+          <label for="name">Name</label><input id="name" v-model="form.name" maxlength="255" placeholder="Office router" required>
+          <label for="ip">IP address</label><input id="ip" v-model="form.ip" inputmode="url" placeholder="192.168.1.1" required>
+          <label for="status">Monitor status</label><select id="status" v-model="form.status"><option value="on">On</option><option value="off">Off</option></select>
+          <button class="primary" type="submit"><span>Add target</span><span aria-hidden="true">&#8594;</span></button>
+          <p class="form-message" :style="{ color: messageColor }" role="status">{{ formMessage }}</p>
+        </form>
+      </aside>
+
+      <section class="panel targets-panel">
+        <div class="panel-heading targets-heading"><div><p class="eyebrow">{{ selectedPing ? 'Target detail' : 'Your inventory' }}</p><h2>{{ selectedPing ? selectedPing.name : 'Ping targets' }}</h2></div><div class="heading-actions"><button v-if="selectedPing" @click="closePing" class="back-button" type="button">&#8592; Back</button><button @click="load" class="icon-button" type="button" title="Refresh targets" aria-label="Refresh targets">&#8635;</button></div></div>
+        <div v-if="!selectedPing" class="filters" role="tablist" aria-label="Filter targets"><button v-for="option in filters" :key="option.value" @click="filter = option.value" :class="['filter', { active: filter === option.value }]" role="tab">{{ option.label }} <span>{{ countFor(option.value) }}</span></button></div>
+        <div v-if="selectedPing" class="detail-view"><div class="detail-hero"><span :class="['detail-bullet', { off: selectedPing.status !== 'on' }]" ></span><div><p class="eyebrow">{{ selectedPing.status === 'on' ? 'Monitoring active' : 'Monitoring paused' }}</p><h3>{{ selectedPing.ip }}</h3><p class="detail-uuid">{{ selectedPing.uuid }}</p></div></div><div class="detail-stats"><div><span>Latest response</span><strong>{{ latestResult(selectedPing)?.duration ?? 'No data' }}{{ latestResult(selectedPing) ? ' ms' : '' }}</strong></div><div><span>Total results</span><strong>{{ totalResults(selectedPing) }}</strong></div><div><span>Created</span><strong>{{ formatDate(selectedPing.created_at) }}</strong></div><div><span>Last updated</span><strong>{{ formatDate(selectedPing.updated_at) }}</strong></div></div><div class="detail-chart"><div class="chart-label"><span>Latency history, last 1000 checks</span><strong>{{ totalResults(selectedPing) }} checks</strong></div><canvas class="chart" :ref="element => setChart(element, selectedPing)" :data-uuid="selectedPing.uuid" :aria-label="`Latency chart for ${selectedPing.name}`"></canvas></div></div>
+        <div v-if="!selectedPing" class="target-list">
+          <div v-if="!visiblePings.length" class="empty"><span class="empty-icon">+</span><p>{{ pings.length ? 'Nothing in this view' : 'No targets yet' }}</p><small>{{ pings.length ? 'Choose another filter to see your targets.' : 'Add an IP address to start monitoring.' }}</small></div>
+          <article v-for="ping in visiblePings" :key="ping.uuid" @click="openPing(ping)" class="target target-selectable"><div class="target-main"><span :class="['target-bullet', { off: ping.status !== 'on' }]" ></span><div><p class="target-name">{{ ping.name }}</p><p class="target-ip">{{ ping.ip }}</p></div></div><div class="target-actions"><select class="status-select" v-model="ping.status" @click.stop @change="updateStatus(ping)" :aria-label="`Status for ${ping.name}`"><option value="on">Monitoring</option><option value="off">Paused</option></select><button @click.stop="deletePing(ping.uuid)" class="delete" :title="`Delete ${ping.name}`" :aria-label="`Delete ${ping.name}`">&times;</button></div><div class="target-summary"><span>{{ latestResult(ping)?.duration ?? '--' }}{{ latestResult(ping) ? ' ms' : '' }} · {{ totalResults(ping) }} results</span><span>View details &#8594;</span></div></article>
+        </div>
+      </section>
+    </section>
+    <footer><span>Local service</span><span class="footer-dot"></span><span>Checks every second when monitoring is on</span></footer>
+  </main>
+  <script src="/app.js"></script>
+</body>
+</html>

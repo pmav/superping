@@ -1,0 +1,15 @@
+services:
+  superping:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: superping:latest
+    container_name: superping
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./data:/data
+    environment:
+      SUPERPING_ADDRESS: ":8080"
+      SUPERPING_DATABASE: "/data/superping.db"
+    restart: unless-stopped

@@ -1,0 +1,21 @@
+meta {
+  name: Update Ping
+  type: http
+  seq: 3
+}
+
+put {
+  url: http://localhost:8080/pings/ef470012-9d8b-4f4f-a52f-497c0362c3af
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "status": "off"
+  }
+}

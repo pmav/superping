@@ -1,0 +1,11 @@
+meta {
+  name: Delete Ping
+  type: http
+  seq: 3
+}
+
+delete {
+  url: http://localhost:8080/pings/{{uuid}}
+  body: none
+  auth: none
+}
