@@ -206,7 +206,7 @@ func (handler *Handler) results(response http.ResponseWriter, request *http.Requ
 		writeError(response, http.StatusNotFound, "ping not found")
 		return
 	}
-	results, err := handler.store.ListRecentResults(request.Context(), path, 1000)
+	results, err := handler.store.ListRecentResults(request.Context(), path, 60)
 	if err != nil {
 		writeError(response, http.StatusInternalServerError, "could not list ping results")
 		return

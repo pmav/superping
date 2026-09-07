@@ -57,7 +57,7 @@ createApp({
     function setChart(element, ping) { if (element) { element.dataset.uuid = ping.uuid; drawChart(element, ping); } }
     function drawChart(canvas, ping) {
       const chart = charts.get(ping.uuid); if (chart) chart.destroy();
-      const results = ping.results || [];
+      const results = (ping.results || []).slice(-60);
       const context = canvas.getContext('2d');
       const dark = darkMode.value;
       const colors = dark ? { line: '#6cdaa0', fill: 'rgba(108,218,160,.16)', grid: '#314238', text: '#9caf9f', tooltip: '#19251e' } : { line: '#168456', fill: 'rgba(22,132,86,.12)', grid: '#e3ebe5', text: '#718078', tooltip: '#ffffff' };

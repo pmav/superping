@@ -10,3 +10,6 @@ build:
 run:
 	mkdir -p data
 	docker run --rm -p $(PORT):8080 -v "$$(pwd)/data:/data" $(IMAGE_NAME):$(TAG)
+
+open:
+	xdg-open http://localhost:$(PORT) || open http://localhost:$(PORT)
