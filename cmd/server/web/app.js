@@ -1,4 +1,4 @@
-const { createApp, ref, computed, onMounted, onBeforeUnmount, nextTick } = Vue;
+const { createApp, ref, computed, onMounted, onBeforeUnmount, nextTick, watch } = Vue;
 
 createApp({
   setup() {
@@ -12,6 +12,7 @@ createApp({
     const form = ref({ name: '', ip: '', status: 'on' });
     const filters = [{ value: 'all', label: 'All' }, { value: 'on', label: 'Monitoring' }, { value: 'off', label: 'Paused' }];
     const charts = new Map();
+    let refreshTimer = null;
 
     const visiblePings = computed(() => pings.value.filter(ping => filter.value === 'all' || ping.status === filter.value));
 
@@ -53,6 +54,14 @@ createApp({
     function totalResults(ping) { return ping.totalResults ?? ping.total_results ?? ping.results?.length ?? 0; }
     function openPing(ping) { selectedPing.value = ping; }
     function closePing() { selectedPing.value = null; }
+    function stopAutoRefresh() { if (refreshTimer) { clearInterval(refreshTimer); refreshTimer = null; } }
+    function startAutoRefresh() {
+      stopAutoRefresh();
+      if (!selectedPing.value) return;
+      refreshTimer = window.setInterval(async () => {
+        await load();
+      }, 1000);
+    }
     function formatDate(value) { return value ? new Date(value).toLocaleString() : '--'; }
     function setChart(element, ping) { if (element) { element.dataset.uuid = ping.uuid; drawChart(element, ping); } }
     function drawChart(canvas, ping) {
@@ -63,8 +72,13 @@ createApp({
       const colors = dark ? { line: '#6cdaa0', fill: 'rgba(108,218,160,.16)', grid: '#314238', text: '#9caf9f', tooltip: '#19251e' } : { line: '#168456', fill: 'rgba(22,132,86,.12)', grid: '#e3ebe5', text: '#718078', tooltip: '#ffffff' };
       charts.set(ping.uuid, new Chart(context, { type: 'line', data: { labels: results.map(result => new Date(result.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })), datasets: [{ data: results.map(result => result.duration), borderColor: colors.line, backgroundColor: colors.fill, pointRadius: 0, pointHoverRadius: 0, tension: .3, fill: true }] }, options: { responsive: true, maintainAspectRatio: false, animation: false, plugins: { legend: { display: false }, tooltip: { backgroundColor: colors.tooltip, titleColor: dark ? '#edf5ef' : '#17231f', bodyColor: dark ? '#edf5ef' : '#17231f', callbacks: { label: item => `${item.parsed.y} ms` } } }, scales: { x: { display: true, grid: { display: false }, ticks: { color: colors.text, autoSkip: true, maxTicksLimit: 8, maxRotation: 0 } }, y: { beginAtZero: true, grid: { color: colors.grid }, ticks: { color: colors.text, callback: value => `${value} ms` } } } } }));
     }
+    watch(selectedPing, (ping) => {
+      if (ping) startAutoRefresh();
+      else stopAutoRefresh();
+    }, { immediate: true });
+
     onMounted(() => { document.documentElement.classList.toggle('dark', darkMode.value); load(); });
-    onBeforeUnmount(() => { charts.forEach(chart => chart.destroy()); });
+    onBeforeUnmount(() => { stopAutoRefresh(); charts.forEach(chart => chart.destroy()); });
     return { pings, selectedPing, darkMode, filter, filters, form, formMessage, messageColor, connectionLabel, visiblePings, countFor, latestResult, totalResults, formatDate, openPing, closePing, toggleTheme, addPing, updateStatus, deletePing, load, setChart };
   }
 }).mount('#app');

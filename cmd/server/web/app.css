@@ -30,8 +30,9 @@ button { font: 600 13px Manrope, sans-serif; cursor: pointer; } .primary { displ
 @media (max-width: 760px) { .shell { width: min(100% - 30px, 560px); padding-top: 16px; } .intro { display: block; padding: 42px 0 22px; } .summary { display: inline-grid; margin-top: 18px; } .workspace { grid-template-columns: 1fr; } .targets-panel { padding: 18px 16px; } .filters { margin: 0 -16px; padding: 0 16px 12px; gap: 12px; } .target { grid-template-columns: 1fr; gap: 10px; } .target-actions { justify-content: flex-end; } footer { flex-wrap: wrap; } }
 .heading-actions { display: flex; align-items: center; gap: 10px; }
 .back-button { padding: 8px 10px; color: var(--green); border: 1px solid var(--line); border-radius: 4px; background: var(--white); font-size: 12px; }
-.back-button:hover, .target-selectable:hover { background: #f7faf6; }
-.target-selectable { cursor: pointer; }
+.back-button:hover { background: #f7faf6; }
+.target-selectable { cursor: pointer; padding: 14px 12px; margin: 0 -12px; border-radius: 10px; transition: background-color .18s ease, box-shadow .18s ease, transform .18s ease; }
+.target-selectable:hover { background: #f7faf6; box-shadow: inset 0 0 0 1px rgba(22,132,86,.08); transform: translateX(2px); }
 .target-summary { grid-column: 1 / -1; display: flex; justify-content: space-between; color: var(--muted); font: 11px 'DM Mono', monospace; }
 .target-summary span:last-child { color: var(--green); }
 .detail-view { display: grid; gap: 18px; }
@@ -56,7 +57,8 @@ button { font: 600 13px Manrope, sans-serif; cursor: pointer; } .primary { displ
 :root.dark .primary { background: #d9f6e6; color: #102017; }
 :root.dark .primary:hover { background: var(--green); }
 :root.dark .icon-button, :root.dark .back-button { color: var(--green); background: var(--white); }
-:root.dark .back-button:hover, :root.dark .target-selectable:hover { background: #213329; }
+:root.dark .back-button:hover { background: #213329; }
+:root.dark .target-selectable:hover { background: #213329; box-shadow: inset 0 0 0 1px rgba(108,218,160,.14); }
 :root.dark .filter span { background: #26372c; }
 :root.dark .filter.active span { background: var(--mint); }
 :root.dark .delete:hover { background: #452824; }
