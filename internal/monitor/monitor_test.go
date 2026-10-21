@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/example/superping/internal/ping"
+	"github.com/example/superping/internal/storage"
 	_ "modernc.org/sqlite"
 )
 
@@ -18,7 +19,7 @@ func TestCheckAllStoresSuccessAndFailureResults(t *testing.T) {
 	database.SetMaxOpenConns(1)
 	defer database.Close()
 
-	store := ping.NewStore(database)
+	store := storage.NewStore(database)
 	if err := store.Initialize(context.Background()); err != nil {
 		t.Fatal(err)
 	}

@@ -11,11 +11,11 @@ import (
 )
 
 type Monitor struct {
-	store  *ping.Store
+	store  ping.Store
 	runner func(context.Context, string) error
 }
 
-func New(store *ping.Store) *Monitor {
+func New(store ping.Store) *Monitor {
 	return &Monitor{store: store, runner: runPing}
 }
 

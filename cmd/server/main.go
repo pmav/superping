@@ -10,11 +10,13 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
 	"github.com/example/superping/internal/monitor"
 	"github.com/example/superping/internal/ping"
+	"github.com/example/superping/internal/storage"
 	_ "modernc.org/sqlite"
 )
 
@@ -25,13 +27,13 @@ func main() {
 	databasePath := envOrDefault("SUPERPING_DATABASE", "superping.db")
 	address := envOrDefault("SUPERPING_ADDRESS", ":8080")
 
-	database, err := sql.Open("sqlite", databasePath)
+	database, err := sql.Open("sqlite", sqliteDSN(databasePath))
 	if err != nil {
 		log.Fatalf("open database: %v", err)
 	}
 	defer database.Close()
 
-	store := ping.NewStore(database)
+	store := storage.NewStore(database)
 	if err := store.Initialize(context.Background()); err != nil {
 		log.Fatalf("initialize database: %v", err)
 	}
@@ -48,6 +50,7 @@ func main() {
 	monitorContext, stopMonitor := context.WithCancel(context.Background())
 	defer stopMonitor()
 	go monitor.New(store).Run(monitorContext)
+	go runScheduledTask(monitorContext, store)
 
 	serverErrors := make(chan error, 1)
 	go func() {
@@ -72,7 +75,7 @@ func main() {
 	}
 }
 
-func newServerHandler(store *ping.Store) http.Handler {
+func newServerHandler(store ping.Store) http.Handler {
 	mux := http.NewServeMux()
 	mux.Handle("/pings", ping.NewHandler(store))
 	mux.Handle("/pings/", ping.NewHandler(store))
@@ -89,4 +92,12 @@ func envOrDefault(key, fallback string) string {
 		return value
 	}
 	return fallback
+}
+
+func sqliteDSN(databasePath string) string {
+	separator := "?"
+	if strings.Contains(databasePath, "?") {
+		separator = "&"
+	}
+	return databasePath + separator + "_pragma=busy_timeout(5000)&_pragma=journal_mode(WAL)"
 }

@@ -10,10 +10,10 @@ import (
 )
 
 type Handler struct {
-	store *Store
+	store Store
 }
 
-func NewHandler(store *Store) http.Handler {
+func NewHandler(store Store) http.Handler {
 	handler := &Handler{store: store}
 	return http.HandlerFunc(handler.logRequest)
 }
@@ -41,6 +41,10 @@ func (handler *Handler) handle(response http.ResponseWriter, request *http.Reque
 
 	if strings.HasPrefix(request.URL.Path, "/pings/") && request.Method == http.MethodDelete {
 		handler.remove(response, request)
+		return
+	}
+	if strings.HasSuffix(request.URL.Path, "/aggregations") && request.Method == http.MethodGet {
+		handler.aggregations(response, request)
 		return
 	}
 	if strings.HasSuffix(request.URL.Path, "/results") && request.Method == http.MethodGet {
@@ -212,6 +216,29 @@ func (handler *Handler) results(response http.ResponseWriter, request *http.Requ
 		return
 	}
 	writeJSON(response, http.StatusOK, results)
+}
+
+func (handler *Handler) aggregations(response http.ResponseWriter, request *http.Request) {
+	path := strings.TrimSuffix(strings.TrimPrefix(request.URL.Path, "/pings/"), "/aggregations")
+	if path == "" || strings.Contains(path, "/") {
+		writeError(response, http.StatusNotFound, "not found")
+		return
+	}
+	_, found, err := handler.store.Get(request.Context(), path)
+	if err != nil {
+		writeError(response, http.StatusInternalServerError, "could not find ping")
+		return
+	}
+	if !found {
+		writeError(response, http.StatusNotFound, "ping not found")
+		return
+	}
+	aggregations, err := handler.store.ListRecentResultAggregations(request.Context(), path, AggregationTypeMinute, time.Now().UTC().Add(-time.Hour), 60)
+	if err != nil {
+		writeError(response, http.StatusInternalServerError, "could not list ping result aggregations")
+		return
+	}
+	writeJSON(response, http.StatusOK, aggregations)
 }
 
 func writeJSON(response http.ResponseWriter, status int, value any) {

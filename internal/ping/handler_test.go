@@ -1,4 +1,4 @@
-package ping
+package ping_test
 
 import (
 	"context"
@@ -9,6 +9,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/example/superping/internal/ping"
+	"github.com/example/superping/internal/storage"
 	_ "modernc.org/sqlite"
 )
 
@@ -20,11 +22,11 @@ func testHandler(t *testing.T) http.Handler {
 	}
 	database.SetMaxOpenConns(1)
 	t.Cleanup(func() { database.Close() })
-	store := NewStore(database)
+	store := storage.NewStore(database)
 	if err := store.Initialize(context.Background()); err != nil {
 		t.Fatal(err)
 	}
-	return NewHandler(store)
+	return ping.NewHandler(store)
 }
 
 func TestCreateListAndRemovePing(t *testing.T) {
@@ -36,15 +38,15 @@ func TestCreateListAndRemovePing(t *testing.T) {
 	if createResponse.Code != http.StatusCreated {
 		t.Fatalf("create status = %d, want %d", createResponse.Code, http.StatusCreated)
 	}
-	var created Ping
+	var created ping.Ping
 	if err := json.NewDecoder(createResponse.Body).Decode(&created); err != nil {
 		t.Fatal(err)
 	}
 	if created.UUID == "" {
 		t.Fatal("created ping has no uuid")
 	}
-	if created.Status != StatusOn {
-		t.Fatalf("created status = %q, want %q", created.Status, StatusOn)
+	if created.Status != ping.StatusOn {
+		t.Fatalf("created status = %q, want %q", created.Status, ping.StatusOn)
 	}
 	if created.CreatedAt == "" || created.UpdatedAt == "" || created.CreatedAt != created.UpdatedAt {
 		t.Fatalf("created timestamps = %q and %q, want equal non-empty values", created.CreatedAt, created.UpdatedAt)
@@ -56,11 +58,11 @@ func TestCreateListAndRemovePing(t *testing.T) {
 	if updateResponse.Code != http.StatusOK {
 		t.Fatalf("update status = %d, want %d", updateResponse.Code, http.StatusOK)
 	}
-	var updated Ping
+	var updated ping.Ping
 	if err := json.NewDecoder(updateResponse.Body).Decode(&updated); err != nil {
 		t.Fatal(err)
 	}
-	if updated.UUID != created.UUID || updated.CreatedAt != created.CreatedAt || updated.Name != "switch" || updated.IP != "192.168.1.2" || updated.Status != StatusOff {
+	if updated.UUID != created.UUID || updated.CreatedAt != created.CreatedAt || updated.Name != "switch" || updated.IP != "192.168.1.2" || updated.Status != ping.StatusOff {
 		t.Fatalf("updated ping = %#v", updated)
 	}
 	if updated.UpdatedAt == created.UpdatedAt {
@@ -73,17 +75,17 @@ func TestCreateListAndRemovePing(t *testing.T) {
 	if partialResponse.Code != http.StatusOK {
 		t.Fatalf("partial update status = %d, want %d", partialResponse.Code, http.StatusOK)
 	}
-	var partiallyUpdated Ping
+	var partiallyUpdated ping.Ping
 	if err := json.NewDecoder(partialResponse.Body).Decode(&partiallyUpdated); err != nil {
 		t.Fatal(err)
 	}
-	if partiallyUpdated.Name != updated.Name || partiallyUpdated.IP != updated.IP || partiallyUpdated.Status != StatusOn {
+	if partiallyUpdated.Name != updated.Name || partiallyUpdated.IP != updated.IP || partiallyUpdated.Status != ping.StatusOn {
 		t.Fatalf("partial update = %#v, want existing name/ip with status on", partiallyUpdated)
 	}
 
 	listResponse := httptest.NewRecorder()
 	handler.ServeHTTP(listResponse, httptest.NewRequest(http.MethodGet, "/pings", nil))
-	var listed []Ping
+	var listed []ping.Ping
 	if err := json.NewDecoder(listResponse.Body).Decode(&listed); err != nil {
 		t.Fatal(err)
 	}
@@ -95,6 +97,18 @@ func TestCreateListAndRemovePing(t *testing.T) {
 	handler.ServeHTTP(resultsResponse, httptest.NewRequest(http.MethodGet, "/pings/"+created.UUID+"/results", nil))
 	if resultsResponse.Code != http.StatusOK {
 		t.Fatalf("results status = %d, want %d", resultsResponse.Code, http.StatusOK)
+	}
+	aggregationsResponse := httptest.NewRecorder()
+	handler.ServeHTTP(aggregationsResponse, httptest.NewRequest(http.MethodGet, "/pings/"+created.UUID+"/aggregations", nil))
+	if aggregationsResponse.Code != http.StatusOK {
+		t.Fatalf("aggregations status = %d, want %d", aggregationsResponse.Code, http.StatusOK)
+	}
+	var aggregations []ping.PingResultAggregation
+	if err := json.NewDecoder(aggregationsResponse.Body).Decode(&aggregations); err != nil {
+		t.Fatal(err)
+	}
+	if len(aggregations) != 0 {
+		t.Fatalf("aggregations = %#v, want empty list", aggregations)
 	}
 
 	removeResponse := httptest.NewRecorder()
